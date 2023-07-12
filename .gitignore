@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Suppress for now, until more "raw" examples can be found
+data_examples/
