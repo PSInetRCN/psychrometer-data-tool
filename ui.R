@@ -21,8 +21,7 @@ page_sidebar(
               buttonLabel = "Upload environmental timeseries as .csv",
               multiple = FALSE, accept = ".csv"),
     
-    selectInput("month", "Select month:", 
-                unique(psy$month))
+    uiOutput("dyn_month")
   ),
   layout_columns(col_widths = c(9, 3),
                  card(

@@ -10,11 +10,33 @@
 
 function(input, output) {
   
+  # Read and reformat uploaded data
+  psy <- reactive({
+    req(input$upload_psy)
+    
+    inFile <- input$upload_psy
+    
+    initial <- read_csv(inFile$datapath) # "data_examples/psy_2a.csv"
+    print(initial)
+    
+    initial %>%
+      mutate(month = lubridate::month(dt))
+  })
+  
+  # Dynamic selectInput for month
+  output$dyn_month <- renderUI({
+    req(input$upload_psy)
+    
+    selectInput("month", "Select month:", 
+                unique(psy()$month))
+    
+  })
+  
   # Dynamically updated slider input based on month selected
   output$dyn_range <- renderUI({
     req(input$month)
     
-    foo <- psy %>%
+    foo <- psy() %>%
       filter(month == input$month) %>%
       pull(date) %>%
       range()
@@ -29,23 +51,28 @@ function(input, output) {
   })
   
   # Initial selection of no points
-  selected <- reactiveVal(rep(FALSE, nrow(psy)))
+  selected <- reactiveVal()
+  
+  # Create vector of FAlSE the length of the input psychrometer timeseries
+  observeEvent(input$upload_psy, {
+    selected(rep(FALSE, nrow(psy())))
+  })
 
   # Create observed points within brush area
   observeEvent(input$plot1_brush, {
-               brushed <- brushedPoints(psy, input$plot1_brush, allRows = TRUE)$selected_
+               brushed <- brushedPoints(psy(), input$plot1_brush, allRows = TRUE)$selected_
                selected(brushed | selected())
   })
 
   # Create observed points with click
   observeEvent(input$plot1_click, {
-    clicked <- nearPoints(psy, input$plot1_click, allRows = TRUE)$selected_
+    clicked <- nearPoints(psy(), input$plot1_click, allRows = TRUE)$selected_
     selected(clicked | selected())
   })
 
   # Reset point if double clicked
   observeEvent(input$plot_reset, {
-    dblclicked <- nearPoints(psy, input$plot_reset, allRow = TRUE)$selected_
+    dblclicked <- nearPoints(psy(), input$plot_reset, allRow = TRUE)$selected_
     
     temp <- selected()
     ind <- which(dblclicked == TRUE)
@@ -54,18 +81,18 @@ function(input, output) {
   })
   
   
-  # Initial selection of whole dataset
-  # psy_out <- reactiveValues(data = psy)
-  
+
   # ggplot timeseries of psy data
   output$p <- renderPlot({
+    req(input$upload_psy)
     req(input$daterange)
     
     # Update with selected
-    psy$sel <- selected()
+    psy_temp <- psy() %>%
+      mutate(sel = selected())
 
     # Filter and plot
-    psy %>%
+    psy_temp %>%
       filter(month == input$month) %>%
       filter(date >= input$daterange[1],
              date <= input$daterange[2]) %>%
@@ -76,10 +103,12 @@ function(input, output) {
       theme_bw(base_size = 16)
   })
   
-  # Visual of data to remove, temporary
+  
+  
+  # Sidebar table of data to remove
   output$brush_info_remove <- renderPrint({
-    psy$to_remove <- selected()
-    temp <- psy %>%
+    temp <- psy() %>%
+      mutate(to_remove = selected()) %>%
       filter(to_remove == TRUE) %>%
       select(date, corrected_water_potential_m_pa) %>%
       rename(corrected_WP = corrected_water_potential_m_pa)
@@ -88,15 +117,17 @@ function(input, output) {
   
   # report all data
   clean_all <- reactive({
-    psy$to_remove <- selected()
-    return(psy)
+    psy_all <- psy() %>%
+      mutate(to_remove == selected())
+    return(all)
   })
   
   # report month data
   clean_month <- reactive({
-    psy$to_remove <- selected()
-    return(filter(psy,
-                  month == input$month))
+    psy_month <- psy() %>%
+      mutate(to_remove == selected()) %>%
+      filter(month == input$month)
+    return(psy_month)
   })
   
   # Button to download cleaned month
@@ -118,7 +149,5 @@ function(input, output) {
       write_csv(clean_all(), file)
     }
   )
-  
-  
   
 }
