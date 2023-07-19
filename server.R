@@ -10,17 +10,23 @@
 
 function(input, output) {
   
-  # Read and reformat uploaded data
+  # Read and reformat uploaded psy data
   psy <- reactive({
     req(input$upload_psy)
     
     inFile <- input$upload_psy
-    
     initial <- read_csv(inFile$datapath) # "data_examples/psy_2a.csv"
-    print(initial)
-    
     initial %>%
       mutate(month = lubridate::month(dt))
+  })
+  
+  # Read and reformat uploaded env data
+  env <- reactive({
+    req(input$upload_env)
+    
+    inFile <- input$upload_env
+    initial <- read_csv(inFile$datapath) # "data_examples/neon_vpd30.csv"
+    initial 
   })
   
   # Dynamic selectInput for month
@@ -29,7 +35,30 @@ function(input, output) {
     
     selectInput("month", "Select month:", 
                 unique(psy()$month))
+  })
+  
+  # Dynamic selectInput for x variable, env data
+  output$dyn_xvar <- renderUI({
+    req(input$upload_env)
     
+    varSelectInput("xvar", "Select x variable:", 
+                env())
+  })
+  
+  # Dynamic selectInput for y variable, 1st axis, env data
+  output$dyn_yvar1 <- renderUI({
+    req(input$upload_env)
+    
+    varSelectInput("yvar1", "Select y variable (left axis):", 
+                env())
+  })
+  
+  # Dynamic selectInput for y variable, 2nd axis, env data
+  output$dyn_yvar2 <- renderUI({
+    req(input$upload_env)
+    
+    varSelectInput("yvar2", "Select y variable (right axis):", 
+                env())
   })
   
   # Dynamically updated slider input based on month selected
@@ -45,9 +74,8 @@ function(input, output) {
                 min = foo[1],
                 max = foo[2],
                 value = foo,
-                width = '100%'
-    )
-    
+                width = '93%',
+                ticks = FALSE)
   })
   
   # Initial selection of no points
@@ -90,6 +118,12 @@ function(input, output) {
     # Update with selected
     psy_temp <- psy() %>%
       mutate(sel = selected())
+    
+    # custom integer labels
+    int_breaks <- function(x, n = 5) {
+      l <- pretty(x, n)
+      l[abs(l %% 1) < .Machine$double.eps ^ 0.5] 
+    }
 
     # Filter and plot
     psy_temp %>%
@@ -99,8 +133,81 @@ function(input, output) {
       ggplot() +
       geom_point(aes(x = dt, y = corrected_water_potential_m_pa,
                      color = sel)) +
-      scale_colour_discrete(limits = c("TRUE", "FALSE")) +
-      theme_bw(base_size = 16)
+      scale_y_continuous("Water potential", breaks = int_breaks) +
+      scale_x_datetime(limits = c(as.POSIXct(paste(input$daterange[1], "00:00")),
+                                  as.POSIXct(paste(input$daterange[2], "00:00"))),
+                       date_breaks = "2 days",
+                       date_labels = "%d") +
+      scale_colour_manual(limits = c("TRUE", "FALSE"),
+                            values = c( "#CC6677", "#117733")) +
+      theme_bw(base_size = 16) +
+      theme(axis.title.x = element_blank(),
+            axis.title.y = element_text(face = "bold")) +
+      guides(color = "none")
+  })
+  
+  # ggplot timeseries of env data
+  # pick 2 inputs
+  output$env <- renderPlot({
+    req(input$upload_env)
+    req(input$daterange)
+    req(input$xvar, input$yvar1, input$yvar2)
+    
+    temp <- env() %>%
+      filter(!!input$xvar >= input$daterange[1],
+             !!input$xvar <= input$daterange[2]) 
+    
+    # For tuning the relative sizes of left and right y axes
+    # ratio1 <- if ( max(temp$VPD,  na.rm = TRUE) > max(temp$p34_6,  na.rm = TRUE) ) {
+    #   max(max(temp$VPD,  na.rm = TRUE), 
+    #       max(temp$p34_6,  na.rm = TRUE),
+    #       na.rm = TRUE) / 
+    #     max(temp$p34_6, na.rm = TRUE)
+    # } else {
+    #   max(max(temp$VPD,  na.rm = TRUE), 
+    #       max(temp$p34_6,  na.rm = TRUE),
+    #       na.rm = TRUE) / 
+    #     max(temp$VPD, na.rm = TRUE)
+    # }
+    # 
+    # ratio1 <- if ( max(temp$!!!input$yvar1,  na.rm = TRUE) > max(temp$!!input$yvar2,  na.rm = TRUE) ) {
+    #   max(max(temp$!!input$yvar1,  na.rm = TRUE), 
+    #       max(temp$!!input$yvar2,  na.rm = TRUE),
+    #       na.rm = TRUE) / 
+    #     max(temp$!!input$yvar2, na.rm = TRUE)
+    # } else {
+    #   max(max(temp$!!input$yvar1,  na.rm = TRUE), 
+    #       max(temp$!!input$yvar2,  na.rm = TRUE),
+    #       na.rm = TRUE) / 
+    #     max(temp$!!input$yvar1, na.rm = TRUE)
+    # }
+      
+    lab_left <- as.character(input$yvar1)
+    lab_right <- as.character(input$yvar2)
+    print(is.character(lab_left))
+
+    temp %>%
+      ggplot() +
+      geom_point(aes(x = !!input$xvar,
+                     y = !!input$yvar1,
+                     color = lab_left)) +
+      geom_point(aes(x = !!input$xvar,
+                     y = !!input$yvar2*1,
+                     color = lab_right)) +
+      scale_y_continuous(lab_left,
+                         sec.axis = sec_axis(~./1,
+                                             name = lab_right)) +
+      scale_x_datetime(date_breaks = "2 days",
+                       date_labels = "%d") +
+      theme_bw(base_size = 16) +
+      scale_color_manual(values = c(lab_left = "#6699CC",
+                                    lab_right = "#44AA99")) +
+      guides(color = "none") +
+      theme(axis.title.y.left = element_text(color = "#6699CC", face = "bold"),
+            axis.title.y.right = element_text(color = "#44AA99", face = "bold"),
+            axis.title.x = element_blank())
+      
+    
   })
   
   
