@@ -7,7 +7,7 @@
 
 page_sidebar(
   theme = bs_theme(bootswatch = "yeti"),
-  title = "Psychrometer cleaning",
+  title = "Psychrometer cleaning tool",
   sidebar = sidebar(
     width = 300, 
     "This tool is intended for QA/QC of psychrometer timeseries by visual comparison with site-level environmental covariates. ",
@@ -40,6 +40,7 @@ page_sidebar(
                  ),
                  card(
                    card_header("Points to remove"),
+                   p("Select points by drawing a rectangle or clicking on individual points. Double-click to undo. "),
                    verbatimTextOutput("brush_info_remove"),
                    downloadButton("download_clean_month", "Month"),
                    downloadButton("download_clean_all", "All")
