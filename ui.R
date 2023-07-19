@@ -18,6 +18,7 @@ page_sidebar(
               buttonLabel = "Upload psychrometer",
               multiple = FALSE, accept = ".csv"),
     uiOutput("dyn_month"),
+    uiOutput("dyn_psyvar"),
     fileInput("upload_env", NULL,
               buttonLabel = "Upload covariates",
               multiple = FALSE, accept = ".csv"),
@@ -30,12 +31,12 @@ page_sidebar(
                  card(
                    card_header("Timeseries"),
                    uiOutput("dyn_range"),
-                   plotOutput("p",
+                   plotOutput("psy_plot",
                               brush = brushOpts(id = "plot1_brush"),
                               click = clickOpts(id = "plot1_click"),
                               dblclick = dblclickOpts(id = "plot_reset"),
                               width = "95%"),
-                   plotOutput("env")
+                   plotOutput("env_plot")
                  ),
                  card(
                    card_header("Points to remove"),

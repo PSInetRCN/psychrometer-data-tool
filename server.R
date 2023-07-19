@@ -56,14 +56,14 @@ function(input, output) {
   })
   
   # Dynamic selectInput for PSY, psy data
-  output$dyn_xvar1 <- renderUI({
+  output$dyn_psyvar <- renderUI({
     req(input$upload_psy)
     
     # only provide POSIXct objects
     temp <- psy() %>%
-      select(where(is.POSIXct))
+      select(where(is.numeric))
     
-    varSelectInput("xvar", "Select x variable:", 
+    varSelectInput("psyvar", "Select WP variable:", 
                    temp)
   })
   
@@ -107,15 +107,15 @@ function(input, output) {
   output$dyn_range <- renderUI({
     req(input$month)
     
-    foo <- psy() %>%
+    temp <- psy() %>%
       filter(month == input$month) %>%
       pull(date) %>%
       range()
     
     sliderInput("daterange", "Select date range:",
-                min = foo[1],
-                max = foo[2],
-                value = foo,
+                min = temp[1],
+                max = temp[2],
+                value = temp,
                 width = '93%',
                 ticks = FALSE)
   })
@@ -153,7 +153,7 @@ function(input, output) {
   
 
   # ggplot timeseries of psy data
-  output$p <- renderPlot({
+  output$psy_plot <- renderPlot({
     req(input$upload_psy)
     req(input$daterange)
     
@@ -173,7 +173,7 @@ function(input, output) {
       filter(date >= input$daterange[1],
              date <= input$daterange[2]) %>%
       ggplot() +
-      geom_point(aes(x = dt, y = corrected_water_potential_m_pa,
+      geom_point(aes(x = dt, y = !!input$psyvar,
                      color = sel)) +
       scale_y_continuous("Water potential", breaks = int_breaks) +
       scale_x_datetime(limits = c(as.POSIXct(paste(input$daterange[1], "00:00")),
@@ -189,8 +189,8 @@ function(input, output) {
   })
   
   # ggplot timeseries of env data
-  # pick 2 inputs
-  output$env <- renderPlot({
+  # require 2 inputs and the x variable as POSIX object
+  output$env_plot <- renderPlot({
     req(input$upload_env)
     req(input$daterange)
     req(input$xvar, input$yvar1, input$yvar2)
@@ -199,37 +199,41 @@ function(input, output) {
       filter(!!input$xvar >= input$daterange[1],
              !!input$xvar <= input$daterange[2]) 
     
-    # For tuning the relative sizes of left and right y axes
-    # ratio1 <- if ( max(temp$VPD,  na.rm = TRUE) > max(temp$p34_6,  na.rm = TRUE) ) {
-    #   max(max(temp$VPD,  na.rm = TRUE), 
-    #       max(temp$p34_6,  na.rm = TRUE),
-    #       na.rm = TRUE) / 
-    #     max(temp$p34_6, na.rm = TRUE)
-    # } else {
-    #   max(max(temp$VPD,  na.rm = TRUE), 
-    #       max(temp$p34_6,  na.rm = TRUE),
-    #       na.rm = TRUE) / 
-    #     max(temp$VPD, na.rm = TRUE)
-    # }
-    # 
-    # ratio1 <- if ( max(temp$!!!input$yvar1,  na.rm = TRUE) > max(temp$!!input$yvar2,  na.rm = TRUE) ) {
-    #   max(max(temp$!!input$yvar1,  na.rm = TRUE), 
-    #       max(temp$!!input$yvar2,  na.rm = TRUE),
-    #       na.rm = TRUE) / 
-    #     max(temp$!!input$yvar2, na.rm = TRUE)
-    # } else {
-    #   max(max(temp$!!input$yvar1,  na.rm = TRUE), 
-    #       max(temp$!!input$yvar2,  na.rm = TRUE),
-    #       na.rm = TRUE) / 
-    #     max(temp$!!input$yvar1, na.rm = TRUE)
-    # }
-      
+    # create character strings of selected columns
     lab_left <- as.character(input$yvar1)
     lab_right <- as.character(input$yvar2)
-    
+
+    # create ratio for scaling left and right axes
+    ratio1 <- if ( max(temp[[lab_left]],  na.rm = TRUE) > max(temp[[lab_right]], na.rm = TRUE)) {
+      max(max(temp[[lab_left]],  na.rm = TRUE),
+          max(temp[[lab_right]],  na.rm = TRUE)) /
+        min(max(temp[[lab_left]],  na.rm = TRUE),
+            max(temp[[lab_right]],  na.rm = TRUE))
+    } else {
+      min(max(temp[[lab_left]],  na.rm = TRUE),
+          max(temp[[lab_right]],  na.rm = TRUE))  / 
+        max(max(temp[[lab_left]],  na.rm = TRUE),
+            max(temp[[lab_right]],  na.rm = TRUE)) 
+    }
+    print(max(temp[[lab_left]],  na.rm = TRUE) > max(temp[[lab_right]], na.rm = TRUE))
+    print(ratio1)
+
+    # For tuning the relative sizes of left and right y axes
+    # ratio1 <- if ( max(temp$VPD,  na.rm = TRUE) > max(temp$p34_6,  na.rm = TRUE) ) {
+    #   max(max(temp$VPD,  na.rm = TRUE),
+    #       max(temp$p34_6,  na.rm = TRUE),
+    #       na.rm = TRUE) /
+    #     max(temp$p34_6, na.rm = TRUE)
+    # } else {
+    #   max(temp$p34_6, na.rm = TRUE) /
+    #     max(max(temp$VPD,  na.rm = TRUE),
+    #         max(temp$p34_6,  na.rm = TRUE),
+    #         na.rm = TRUE)
+    # }
+
     # Name color vector
-    colors <- c("#6699CC","#44AA99")
-    names(colors) <- c(lab_left, lab_right)
+    color_vec <- c("#6699CC","#44AA99")
+    names(color_vec) <- c(lab_left, lab_right)
 
     temp %>%
       ggplot() +
@@ -237,15 +241,15 @@ function(input, output) {
                      y = !!input$yvar1,
                      color = lab_left)) +
       geom_point(aes(x = !!input$xvar,
-                     y = !!input$yvar2*1,
+                     y = !!input$yvar2*ratio1,
                      color = lab_right)) +
       scale_y_continuous(lab_left,
-                         sec.axis = sec_axis(~./1,
+                         sec.axis = sec_axis(~./ratio1,
                                              name = lab_right)) +
       scale_x_datetime(date_breaks = "2 days",
                        date_labels = "%d") +
       theme_bw(base_size = 16) +
-      scale_color_manual(values = colors) +
+      scale_color_manual(values = color_vec) +
       guides(color = "none") +
       theme(axis.title.y.left = element_text(color = "#6699CC", face = "bold"),
             axis.title.y.right = element_text(color = "#44AA99", face = "bold"),
