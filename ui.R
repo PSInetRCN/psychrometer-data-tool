@@ -34,7 +34,7 @@ page_sidebar(
                               brush = brushOpts(id = "plot1_brush"),
                               click = clickOpts(id = "plot1_click"),
                               dblclick = dblclickOpts(id = "plot_reset"),
-                              width = "93%"),
+                              width = "95%"),
                    plotOutput("env")
                  ),
                  card(

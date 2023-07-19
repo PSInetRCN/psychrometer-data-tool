@@ -16,8 +16,26 @@ function(input, output) {
     
     inFile <- input$upload_psy
     initial <- read_csv(inFile$datapath) # "data_examples/psy_2a.csv"
-    initial %>%
-      mutate(month = lubridate::month(dt))
+    
+    # find date and time - create dt
+    if("dt" %nin% colnames(initial)) {
+     d_name <- initial %>%
+        select(where(is.Date)) %>%
+        colnames()
+     
+     t_name <- initial %>%
+       select(where(hms::is_hms)) %>%
+       colnames()
+     
+     initial %>%
+       mutate( # WIP to figure out adding on-the-fly conversion of data
+         # dt = as.POSIXct(paste0(!!sym(d_name), !!sym(t_name))),
+              month = lubridate::month(dt))
+    } else {
+      initial %>%
+        mutate(month = lubridate::month(dt))
+    }
+
   })
   
   # Read and reformat uploaded env data
@@ -37,28 +55,52 @@ function(input, output) {
                 unique(psy()$month))
   })
   
+  # Dynamic selectInput for PSY, psy data
+  output$dyn_xvar1 <- renderUI({
+    req(input$upload_psy)
+    
+    # only provide POSIXct objects
+    temp <- psy() %>%
+      select(where(is.POSIXct))
+    
+    varSelectInput("xvar", "Select x variable:", 
+                   temp)
+  })
+  
   # Dynamic selectInput for x variable, env data
   output$dyn_xvar <- renderUI({
     req(input$upload_env)
     
+    # only provide POSIXct objects
+    temp <- env() %>%
+      select(where(is.POSIXct))
+    
     varSelectInput("xvar", "Select x variable:", 
-                env())
+                   temp)
   })
   
   # Dynamic selectInput for y variable, 1st axis, env data
   output$dyn_yvar1 <- renderUI({
     req(input$upload_env)
     
+    # only provide numeric objects
+    temp <- env() %>%
+      select(where(is.numeric))
+    
     varSelectInput("yvar1", "Select y variable (left axis):", 
-                env())
+                   temp)
   })
   
   # Dynamic selectInput for y variable, 2nd axis, env data
   output$dyn_yvar2 <- renderUI({
     req(input$upload_env)
     
+    # only provide numeric objects
+    temp <- env() %>%
+      select(where(is.numeric))
+    
     varSelectInput("yvar2", "Select y variable (right axis):", 
-                env())
+                   temp)
   })
   
   # Dynamically updated slider input based on month selected
@@ -184,7 +226,10 @@ function(input, output) {
       
     lab_left <- as.character(input$yvar1)
     lab_right <- as.character(input$yvar2)
-    print(is.character(lab_left))
+    
+    # Name color vector
+    colors <- c("#6699CC","#44AA99")
+    names(colors) <- c(lab_left, lab_right)
 
     temp %>%
       ggplot() +
@@ -200,8 +245,7 @@ function(input, output) {
       scale_x_datetime(date_breaks = "2 days",
                        date_labels = "%d") +
       theme_bw(base_size = 16) +
-      scale_color_manual(values = c(lab_left = "#6699CC",
-                                    lab_right = "#44AA99")) +
+      scale_color_manual(values = colors) +
       guides(color = "none") +
       theme(axis.title.y.left = element_text(color = "#6699CC", face = "bold"),
             axis.title.y.right = element_text(color = "#44AA99", face = "bold"),
@@ -225,14 +269,14 @@ function(input, output) {
   # report all data
   clean_all <- reactive({
     psy_all <- psy() %>%
-      mutate(to_remove == selected())
-    return(all)
+      mutate(to_remove = selected())
+    return(psy_all)
   })
   
   # report month data
   clean_month <- reactive({
     psy_month <- psy() %>%
-      mutate(to_remove == selected()) %>%
+      mutate(to_remove = selected()) %>%
       filter(month == input$month)
     return(psy_month)
   })
@@ -240,17 +284,17 @@ function(input, output) {
   # Button to download cleaned month
   output$download_clean_month <- downloadHandler(
     filename = function() {
-      paste0("data-", Sys.Date(), ".csv")
+      glue::glue("clean-{input$month}-{input$upload_psy}.csv")
     },
     content = function(file) {
-      write_csv(clean_month(), file)
+      write_csv(x = clean_month(), file = file)
     }
   )
   
   # Button to download cleaned all
   output$download_clean_all <- downloadHandler(
     filename = function() {
-      paste0("data-", Sys.Date(), ".csv")
+      glue::glue("clean-{input$upload_psy}.csv")
     },
     content = function(file) {
       write_csv(clean_all(), file)
