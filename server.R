@@ -234,28 +234,36 @@ function(input, output) {
     # Name color vector
     color_vec <- c("#6699CC","#44AA99")
     names(color_vec) <- c(lab_left, lab_right)
-
-    temp %>%
-      ggplot() +
-      geom_point(aes(x = !!input$xvar,
-                     y = !!input$yvar1,
-                     color = lab_left)) +
-      geom_point(aes(x = !!input$xvar,
-                     y = !!input$yvar2*ratio1,
-                     color = lab_right)) +
-      scale_y_continuous(lab_left,
-                         sec.axis = sec_axis(~./ratio1,
-                                             name = lab_right)) +
-      scale_x_datetime(date_breaks = "2 days",
-                       date_labels = "%d") +
-      theme_bw(base_size = 16) +
-      scale_color_manual(values = color_vec) +
-      guides(color = "none") +
-      theme(axis.title.y.left = element_text(color = "#6699CC", face = "bold"),
-            axis.title.y.right = element_text(color = "#44AA99", face = "bold"),
-            axis.title.x = element_blank())
-      
     
+    if(is.infinite(ratio1) | is.na(ratio1) | is.nan(ratio1) | ratio1 == 0) {
+      
+      ggplot() +
+        theme_void() +
+        geom_text(aes(0, 0, label = 'One or more covariates is missing for this time period'))
+      
+    } else {
+      
+      temp %>%
+        ggplot() +
+        geom_point(aes(x = !!input$xvar,
+                       y = !!input$yvar1,
+                       color = lab_left)) +
+        geom_point(aes(x = !!input$xvar,
+                       y = !!input$yvar2*ratio1,
+                       color = lab_right)) +
+        scale_y_continuous(lab_left,
+                           sec.axis = sec_axis(~./ratio1,
+                                               name = lab_right)) +
+        scale_x_datetime(date_breaks = "2 days",
+                         date_labels = "%d") +
+        theme_bw(base_size = 16) +
+        scale_color_manual(values = color_vec) +
+        guides(color = "none") +
+        theme(axis.title.y.left = element_text(color = "#6699CC", face = "bold"),
+              axis.title.y.right = element_text(color = "#44AA99", face = "bold"),
+              axis.title.x = element_blank())
+    }
+
   })
   
   
