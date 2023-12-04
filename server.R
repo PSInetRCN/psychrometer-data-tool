@@ -296,7 +296,7 @@ function(input, output) {
   # Button to download cleaned month
   output$download_clean_month <- downloadHandler(
     filename = function() {
-      glue::glue("clean-{input$month}-{input$upload_psy}.csv")
+      glue::glue("clean-{input$month}-{input$upload_psy}")
     },
     content = function(file) {
       write_csv(x = clean_month(), file = file)
@@ -306,7 +306,7 @@ function(input, output) {
   # Button to download cleaned all
   output$download_clean_all <- downloadHandler(
     filename = function() {
-      glue::glue("clean-{input$upload_psy}.csv")
+      glue::glue("clean-{input$upload_psy}")
     },
     content = function(file) {
       write_csv(clean_all(), file)
