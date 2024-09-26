@@ -33,7 +33,8 @@ function(input, output) {
               month = lubridate::month(dt))
     } else {
       initial %>%
-        mutate(month = lubridate::month(dt))
+        mutate(month = lubridate::month(dt),
+               date = as.Date(dt))
     }
 
   })
