@@ -163,10 +163,10 @@ function(input, output) {
       mutate(sel = selected())
     
     # custom integer labels
-    int_breaks <- function(x, n = 5) {
-      l <- pretty(x, n)
-      l[abs(l %% 1) < .Machine$double.eps ^ 0.5] 
-    }
+    # int_breaks <- function(x, n = 5) {
+    #   l <- pretty(x, n)
+    #   l[abs(l %% 1) < .Machine$double.eps ^ 0.5] 
+    # }
 
     # Filter and plot
     psy_temp %>%
@@ -176,7 +176,8 @@ function(input, output) {
       ggplot() +
       geom_point(aes(x = dt, y = !!input$psyvar,
                      color = sel)) +
-      scale_y_continuous("Water potential", breaks = int_breaks) +
+      scale_y_continuous("Water potential") + 
+                         # , breaks = int_breaks) +
       scale_x_datetime(limits = c(as.POSIXct(paste(input$daterange[1], "00:00")),
                                   as.POSIXct(paste(input$daterange[2], "00:00"))),
                        date_breaks = "2 days",
