@@ -11,7 +11,10 @@ page_sidebar(
   sidebar = sidebar(
     width = 300, 
     "This tool is intended for QA/QC of psychrometer timeseries by visual comparison with site-level environmental covariates. ",
-    "We advise that preliminary data cleaning (e.g., removing 0 or positive values, excising day of installation) be completed programatically prior to use of this tool. ", 
+    "We advise that preliminary data cleaning (e.g., removing 0 or positive values, excising day of installation) be completed programatically prior to use of this tool. ",
+    br(),
+    "Please upload .csv files of hourly or sub-hourly psychrometer and environmental covariate timeseries. One column should be named `dt` and include the date/time in standard POSIX format.",
+    "We've found that including soil moisture and VPD are most helpful in determining whether psychrometer outliers should be excluded from downstream calculations.",
     br(),
     br(),
     fileInput("upload_psy", NULL,
