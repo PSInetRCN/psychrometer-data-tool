@@ -15,7 +15,7 @@ function(input, output) {
     req(input$upload_psy)
     
     inFile <- input$upload_psy
-    initial <- read_csv(inFile$datapath) # "data_examples/psy_2a.csv"
+    initial <- read_csv(inFile$datapath) # "data_examples/clean-removed-psy5.csv"
     
     # find date and time - create dt
     if("dt" %nin% colnames(initial)) {
@@ -179,7 +179,7 @@ function(input, output) {
       scale_y_continuous("Water potential") + 
                          # , breaks = int_breaks) +
       scale_x_datetime(limits = c(as.POSIXct(paste(input$daterange[1], "00:00")),
-                                  as.POSIXct(paste(input$daterange[2], "00:00"))),
+                                  as.POSIXct(paste(input$daterange[2], "23:30"))),
                        date_breaks = "2 days",
                        date_labels = "%d") +
       scale_colour_manual(limits = c("TRUE", "FALSE"),
