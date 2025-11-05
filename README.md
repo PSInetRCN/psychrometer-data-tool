@@ -1,0 +1,3 @@
+## Psychrometer cleaning tool
+This tool was created to enable selection of 'bad' data visually and in comparison with local environmental data. Uploaded csv files are plotted interactively, and users can select single or groups of points that indicate poor data. Once completed, the points can be output as a csv file; the original data and the output from this tool can be used together in `dplyr::anti_join()` to produce cleaned timeseries ready for further analysis. 
+This [tool](https://i6q1c8-jessica0guo.shinyapps.io/psychrometer-data-tool/) is deployed on Shinyapps.io
